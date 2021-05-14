@@ -1,5 +1,5 @@
 {
-  "name": "@transcend-io/conflux",
+  "name": "get-net/conflux64",
   "version": "3.2.0",
   "description": "Build zip files out of readable streams in the browser",
   "main": "dist/conflux.umd.min.js",
@@ -20,7 +20,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/transcend-io/conflux.git"
+    "url": "git+https://github.com/get-net/conflux.git"
   },
   "keywords": [
     "zip",
@@ -45,6 +45,11 @@
       "name": "Ben Brook",
       "email": "ben@transcend.io",
       "url": "https://github.com/bencmbrook"
+    },
+    {
+      "name": "Ivan Schekoldin",
+      "email": "isch@get-net.ru",
+      "url": "https://github.com/ischekoldin"
     }
   ],
   "files": [
