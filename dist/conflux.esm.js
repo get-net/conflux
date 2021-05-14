@@ -12,10 +12,10 @@ import _Reflect$construct from '@babel/runtime-corejs3/core-js/reflect/construct
 import _inherits from '@babel/runtime-corejs3/helpers/inherits';
 import _possibleConstructorReturn from '@babel/runtime-corejs3/helpers/possibleConstructorReturn';
 import _getPrototypeOf from '@babel/runtime-corejs3/helpers/getPrototypeOf';
-import _forEachInstanceProperty from '@babel/runtime-corejs3/core-js/instance/for-each';
 import _endsWithInstanceProperty from '@babel/runtime-corejs3/core-js/instance/ends-with';
 import _Date$now from '@babel/runtime-corejs3/core-js/date/now';
 import _trimInstanceProperty from '@babel/runtime-corejs3/core-js/instance/trim';
+import _forEachInstanceProperty from '@babel/runtime-corejs3/core-js/instance/for-each';
 import _Object$create from '@babel/runtime-corejs3/core-js/object/create';
 import { TransformStream } from 'web-streams-polyfill/ponyfill';
 
@@ -244,7 +244,8 @@ var Entry = /*#__PURE__*/function () {
       var inflator;
 
       var onEnd = function onEnd(ctrl) {
-        return crc.get() === self.crc32 ? ctrl.close() : ctrl.error(new Error("The crc32 checksum don't match"));
+        console.log(crc.get(), self.crc32);
+        crc.get() === self.crc32 ? ctrl.close() : ctrl.error(new Error("The crc32 checksum don't match"));
       };
 
       return new ReadableStream({
@@ -254,21 +255,30 @@ var Entry = /*#__PURE__*/function () {
           return _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee() {
             var _context2, _context3;
 
-            var ab, bytes, localFileOffset, start, end;
+            var zip64Field, compressedSize, zip64Offset, ab, bytes, localFileOffset, start, end;
             return _regeneratorRuntime.wrap(function _callee$(_context4) {
               while (1) {
                 switch (_context4.prev = _context4.next) {
                   case 0:
-                    _context4.next = 2;
-                    return _sliceInstanceProperty(_context2 = self._fileLike).call(_context2, self.offset + 26, self.offset + 30).arrayBuffer();
+                    // Need to read local header to get fileName + extraField length
+                    // Since they are not always the same length as in central dir...
+                    zip64Field = self._extraFields[1];
+                    compressedSize = zip64Field.getUint16(8, true);
+                    zip64Offset = zip64Field.getUint16(16, true);
+                    _context4.next = 5;
+                    return _sliceInstanceProperty(_context2 = self._fileLike).call(_context2, JSBI.toNumber(self.offset + BigInt(26)), JSBI.toNumber(self.offset + BigInt(30))).arrayBuffer();
 
-                  case 2:
+                  case 5:
                     ab = _context4.sent;
                     bytes = new Uint8Array(ab);
                     localFileOffset = uint16e(bytes, 0) + uint16e(bytes, 2) + 30;
-                    start = self.offset + localFileOffset;
-                    end = start + self.compressedSize;
-                    _this.reader = _sliceInstanceProperty(_context3 = self._fileLike).call(_context3, start, end).stream().getReader();
+                    start = self.offset + BigInt(localFileOffset);
+                    end = start + BigInt(self.compressedSize);
+                    _context4.next = 12;
+                    return _sliceInstanceProperty(_context3 = self._fileLike).call(_context3, JSBI.toNumber(start), JSBI.toNumber(end)).stream().getReader();
+
+                  case 12:
+                    _this.reader = _context4.sent;
 
                     if (self.compressionMethod) {
                       inflator = new Inflate({
@@ -285,7 +295,7 @@ var Entry = /*#__PURE__*/function () {
                       };
                     }
 
-                  case 9:
+                  case 14:
                   case "end":
                     return _context4.stop();
                 }
@@ -307,7 +317,24 @@ var Entry = /*#__PURE__*/function () {
 
                   case 2:
                     v = _context5.sent;
-                    inflator ? !v.done && inflator.push(v.value) : v.done ? onEnd(ctrl) : (ctrl.enqueue(v.value), crc.append(v.value));
+
+                    if (inflator) {
+                      if (!v.done) {
+                        inflator.push(v.value);
+                      }
+                    } else {
+                      if (v.done) {
+                        onEnd(ctrl);
+                      } else {
+                        crc.append(v.value);
+                        ctrl.enqueue(v.value);
+                      }
+                    } // inflator
+                    //   ? !v.done && inflator.push(v.value)
+                    //   : v.done
+                    //   ? onEnd(ctrl)
+                    //   : (ctrl.enqueue(v.value), crc.append(v.value));
+
 
                   case 4:
                   case "end":
@@ -379,6 +406,10 @@ var Entry = /*#__PURE__*/function () {
   }, {
     key: "compressedSize",
     get: function get() {
+      if (this._extraFields[1]) {
+        return this._extraFields[1].getBigUint64(8, true);
+      }
+
       return this.dataView.getUint32(20, true);
     }
   }, {
@@ -419,6 +450,10 @@ var Entry = /*#__PURE__*/function () {
   }, {
     key: "offset",
     get: function get() {
+      if (this._extraFields[1]) {
+        return this._extraFields[1].getBigUint64(16, true);
+      }
+
       return this.dataView.getUint32(42, true);
     }
   }, {
@@ -715,6 +750,54 @@ var _globalThis$WebStream;
 function _createSuper(Derived) { var hasNativeReflectConstruct = _isNativeReflectConstruct(); return function _createSuperInternal() { var Super = _getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = _getPrototypeOf(this).constructor; result = _Reflect$construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return _possibleConstructorReturn(this, result); }; }
 
 function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !_Reflect$construct) return false; if (_Reflect$construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(_Reflect$construct(Date, [], function () {})); return true; } catch (e) { return false; } }
+var zip64ExtraFieldLength = 28;
+var centralHeaderSignature = 0x504b0102,
+    CDLength = 46;
+var eocdSignature = 0x504b0506,
+    eocdMinLength = 22;
+var zip64EOCDRSignature = 0x504b0606,
+    zip64EOCDRLength = 56;
+var zip64EOCDRLocatorSignature = 0x504b0607,
+    zip64EOCDRLocatorLength = 20;
+var zip64CDExtraField = {
+  signature: 0,
+  fieldSize: 2,
+  uncompressedSize: 4,
+  compressedSize: 12,
+  lfhOffset: 20
+};
+var zip64EOCDR = {
+  signature: 0,
+  eocdrSize: 4,
+  versionCreated: 12,
+  versionRequired: 14,
+  cdRecordsOnDisk: 24,
+  cdTotalRecords: 32,
+  cdSize: 40,
+  cdOffset: 48
+};
+var CD = {
+  signature: 0,
+  versionCreated: 4,
+  versionRequired: 6,
+  flags: 8,
+  mode: 10,
+  time: 12,
+  date: 14,
+  crc: 16,
+  uncompressedSize: 20,
+  compressedSize: 24,
+  filenameLength: 28,
+  extraDataLength: 30,
+  commentLength: 32,
+  lfhOffset: 42,
+  filename: 46
+};
+var zip64EOCDRLocator = {
+  signature: 0,
+  eocdOffset: 8,
+  numOfDisks: 16
+};
 var encoder = new TextEncoder();
 
 var ZipTransformer = /*#__PURE__*/function () {
@@ -725,27 +808,120 @@ var ZipTransformer = /*#__PURE__*/function () {
     this.filenames = [];
     this.offset = JSBI.BigInt(0);
   }
-  /**
-   * [transform description]
-   *
-   * @param  {File}  entry [description]
-   * @param  {ReadableStreamDefaultController}  ctrl
-   * @return {Promise}       [description]
-   */
-
 
   _createClass(ZipTransformer, [{
+    key: "getZip64ExtraField",
+    value: function getZip64ExtraField(uncompressedSize, compressedSize, offset) {
+      var extraField = new Uint8Array(zip64ExtraFieldLength);
+      var dv = new DataView(extraField.buffer);
+      dv.setUint16(zip64CDExtraField.signature, 1, true);
+      dv.setUint16(zip64CDExtraField.fieldSize, 24, true);
+      dv.setBigUint64(zip64CDExtraField.uncompressedSize, BigInt(uncompressedSize), true);
+      dv.setBigUint64(zip64CDExtraField.compressedSize, BigInt(compressedSize), true);
+      dv.setBigUint64(zip64CDExtraField.lfhOffset, BigInt(offset), true);
+      return extraField;
+    }
+  }, {
+    key: "writeCD",
+    value: function writeCD(ctrl, index, length) {
+      var _context,
+          _this = this;
+
+      var data = new Uint8Array(length + 22 + zip64ExtraFieldLength * this.filenames.length);
+      var dv = new DataView(data.buffer);
+      var file;
+
+      _forEachInstanceProperty(_context = this.filenames).call(_context, function (fileName) {
+        file = _this.files[fileName];
+        dv.setUint32(index + CD.signature, centralHeaderSignature);
+        dv.setUint16(index + CD.versionCreated, 0x2d00);
+        dv.setUint16(index + CD.commentLength, file.comment.length, true);
+        dv.setUint8(index + 38, file.directory ? 16 : 0);
+        dv.setUint32(index + CD.lfhOffset, 0xffffffff, true);
+        data.set(file.header, index + 6);
+        data.set(file.nameBuf, index + CDLength);
+        dv.setUint16(index + CD.extraDataLength, 0x1c, true);
+
+        var zip64Field = _this.getZip64ExtraField(file.uncompressedLength, file.compressedLength, file.offset);
+
+        data.set(zip64Field, index + CDLength + file.nameBuf.length);
+        data.set(file.comment, index + CDLength + file.nameBuf.length + zip64Field.length);
+        index += 46 + file.nameBuf.length + file.comment.length + zip64Field.length;
+      });
+
+      ctrl.enqueue(data);
+      return index;
+    }
+  }, {
+    key: "writeZip64EOCDLocator",
+    value: function writeZip64EOCDLocator(ctrl, index, cdSize) {
+      var zip64EOCDOffset = BigInt(this.offset) + BigInt(cdSize + eocdMinLength);
+      var zip64eocdLocator = new Uint8Array(zip64EOCDRLocatorLength);
+      var dv = new DataView(zip64eocdLocator.buffer);
+      dv.setUint32(zip64EOCDRLocator.signature, zip64EOCDRLocatorSignature);
+      dv.setBigUint64(zip64EOCDRLocator.eocdOffset, BigInt(zip64EOCDOffset), true);
+      dv.setUint32(zip64EOCDRLocator.numOfDisks, 1, true);
+      ctrl.enqueue(zip64eocdLocator);
+      return index += zip64EOCDRLocatorLength;
+    }
+  }, {
+    key: "writeZip64EOCD",
+    value: function writeZip64EOCD(ctrl, index, offset, filenames, cdSize) {
+      var zip64eocd = new Uint8Array(zip64EOCDRLength);
+      var dv = new DataView(zip64eocd.buffer);
+      dv.setUint32(zip64EOCDR.signature, zip64EOCDRSignature);
+      dv.setBigUint64(zip64EOCDR.eocdrSize, BigInt(zip64EOCDRLength - 12), true);
+      dv.setUint16(zip64EOCDR.versionCreated, 0x2d00);
+      dv.setUint16(zip64EOCDR.versionRequired, 0x2d00);
+      dv.setBigUint64(zip64EOCDR.cdRecordsOnDisk, BigInt(filenames.length), true);
+      dv.setBigUint64(zip64EOCDR.cdTotalRecords, BigInt(filenames.length), true);
+      dv.setBigUint64(zip64EOCDR.cdSize, BigInt(cdSize + eocdMinLength), true);
+      dv.setBigUint64(zip64EOCDR.cdOffset, BigInt(offset), true);
+      ctrl.enqueue(zip64eocd);
+      return index += zip64EOCDRLength;
+    }
+  }, {
+    key: "writeEOCD",
+    value: function writeEOCD(ctrl, index, filenames, offset, length, isZip64) {
+      var zipEOCD = new Uint8Array(eocdMinLength);
+      var dv = new DataView(zipEOCD.buffer);
+
+      if (!isZip64) {
+        dv.setUint32(0, eocdSignature);
+        dv.setUint16(8, filenames.length, true);
+        dv.setUint16(10, filenames.length, true);
+        dv.setUint32(12, length, true);
+        dv.setUint32(16, JSBI.toNumber(offset), true);
+      } else {
+        dv.setUint32(0, eocdSignature);
+        dv.setUint16(8, 0xffff, true);
+        dv.setUint16(10, 0xffff, true);
+        dv.setUint32(12, 0xffffffff, true);
+        dv.setUint32(16, 0xffffffff, true);
+      }
+
+      ctrl.enqueue(zipEOCD);
+    }
+    /**
+     * [transform description]
+     *
+     * @param  {File}  entry [description]
+     * @param  {ReadableStreamDefaultController}  ctrl
+     * @return {Promise}       [description]
+     */
+
+  }, {
     key: "transform",
     value: function () {
       var _transform = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee(entry, ctrl) {
-        var _context;
+        var _context2;
 
         var name, date, nameBuf, zipObject, header, hdv, data, footer, reader, it, chunk;
-        return _regeneratorRuntime.wrap(function _callee$(_context2) {
+        return _regeneratorRuntime.wrap(function _callee$(_context3) {
           while (1) {
-            switch (_context2.prev = _context2.next) {
+            switch (_context3.prev = _context3.next) {
               case 0:
-                name = _trimInstanceProperty(_context = entry.name).call(_context);
+                name = _trimInstanceProperty(_context2 = entry.name).call(_context2);
                 date = new Date(typeof entry.lastModified === 'undefined' ? _Date$now() : entry.lastModified);
                 if (entry.directory && !_endsWithInstanceProperty(name).call(name, '/')) name += '/';
                 if (this.files[name]) ctrl.abort(new Error('File already exists.'));
@@ -764,7 +940,7 @@ var ZipTransformer = /*#__PURE__*/function () {
                 header = zipObject.header;
                 hdv = new DataView(header.buffer);
                 data = new Uint8Array(30 + nameBuf.length);
-                hdv.setUint32(0, 0x14000808);
+                hdv.setUint32(0, 0x2d000808);
                 hdv.setUint16(6, (date.getHours() << 6 | date.getMinutes()) << 5 | date.getSeconds() / 2, true);
                 hdv.setUint16(8, (date.getFullYear() - 1980 << 4 | date.getMonth() + 1) << 5 | date.getDate(), true);
                 hdv.setUint16(22, nameBuf.length, true);
@@ -777,7 +953,7 @@ var ZipTransformer = /*#__PURE__*/function () {
                 footer.set([80, 75, 7, 8]);
 
                 if (!entry.stream) {
-                  _context2.next = 42;
+                  _context3.next = 42;
                   break;
                 }
 
@@ -786,18 +962,18 @@ var ZipTransformer = /*#__PURE__*/function () {
 
               case 25:
 
-                _context2.next = 28;
+                _context3.next = 28;
                 return reader.read();
 
               case 28:
-                it = _context2.sent;
+                it = _context3.sent;
 
                 if (!it.done) {
-                  _context2.next = 31;
+                  _context3.next = 31;
                   break;
                 }
 
-                return _context2.abrupt("break", 38);
+                return _context3.abrupt("break", 38);
 
               case 31:
                 chunk = it.value;
@@ -805,13 +981,13 @@ var ZipTransformer = /*#__PURE__*/function () {
                 zipObject.uncompressedLength = JSBI.add(zipObject.uncompressedLength, JSBI.BigInt(chunk.length));
                 zipObject.compressedLength = JSBI.add(zipObject.compressedLength, JSBI.BigInt(chunk.length));
                 ctrl.enqueue(chunk);
-                _context2.next = 25;
+                _context3.next = 25;
                 break;
 
               case 38:
                 hdv.setUint32(10, zipObject.crc.get(), true);
-                hdv.setUint32(14, JSBI.toNumber(zipObject.compressedLength), true);
-                hdv.setUint32(18, JSBI.toNumber(zipObject.uncompressedLength), true);
+                hdv.setUint32(14, 0xffffffff, true);
+                hdv.setUint32(18, 0xffffffff, true);
                 footer.set(header.subarray(10, 22), 4);
 
               case 42:
@@ -821,7 +997,7 @@ var ZipTransformer = /*#__PURE__*/function () {
 
               case 45:
               case "end":
-                return _context2.stop();
+                return _context3.stop();
             }
           }
         }, _callee, this);
@@ -840,41 +1016,23 @@ var ZipTransformer = /*#__PURE__*/function () {
   }, {
     key: "flush",
     value: function flush(ctrl) {
-      var _context3,
-          _this = this,
-          _context4;
+      var _context4,
+          _this2 = this;
 
       var length = 0;
       var index = 0;
       var file;
 
-      _forEachInstanceProperty(_context3 = this.filenames).call(_context3, function (fileName) {
-        file = _this.files[fileName];
+      _forEachInstanceProperty(_context4 = this.filenames).call(_context4, function (fileName) {
+        file = _this2.files[fileName];
         length += 46 + file.nameBuf.length + file.comment.length;
       });
 
-      var data = new Uint8Array(length + 22);
-      var dv = new DataView(data.buffer);
-
-      _forEachInstanceProperty(_context4 = this.filenames).call(_context4, function (fileName) {
-        file = _this.files[fileName];
-        dv.setUint32(index, 0x504b0102);
-        dv.setUint16(index + 4, 0x1400);
-        dv.setUint16(index + 32, file.comment.length, true);
-        dv.setUint8(index + 38, file.directory ? 16 : 0);
-        dv.setUint32(index + 42, JSBI.toNumber(file.offset), true);
-        data.set(file.header, index + 6);
-        data.set(file.nameBuf, index + 46);
-        data.set(file.comment, index + 46 + file.nameBuf.length);
-        index += 46 + file.nameBuf.length + file.comment.length;
-      });
-
-      dv.setUint32(index, 0x504b0506);
-      dv.setUint16(index + 8, this.filenames.length, true);
-      dv.setUint16(index + 10, this.filenames.length, true);
-      dv.setUint32(index + 12, length, true);
-      dv.setUint32(index + 16, JSBI.toNumber(this.offset), true);
-      ctrl.enqueue(data); // cleanup
+      index = this.writeCD(ctrl, index, length);
+      var cdSize = index;
+      index = this.writeZip64EOCD(ctrl, index, this.offset, this.filenames, cdSize);
+      index = this.writeZip64EOCDLocator(ctrl, index, cdSize);
+      this.writeEOCD(ctrl, index, this.filenames, this.offset, length, true); // cleanup
 
       this.files = _Object$create(null);
       this.filenames = [];

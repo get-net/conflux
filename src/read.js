@@ -67,6 +67,9 @@ class Entry {
   }
 
   get compressedSize() {
+    if (this._extraFields[1]) {
+      return this._extraFields[1].getBigUint64(8, true);
+    }
     return this.dataView.getUint32(20, true);
   }
 
@@ -99,6 +102,9 @@ class Entry {
   }
 
   get offset() {
+    if (this._extraFields[1]) {
+      return this._extraFields[1].getBigUint64(16, true);
+    }
     return this.dataView.getUint32(42, true);
   }
 
@@ -159,24 +165,32 @@ class Entry {
     const self = this;
     const crc = new Crc32();
     let inflator;
-    const onEnd = (ctrl) =>
+    const onEnd = (ctrl) => {
       crc.get() === self.crc32
-        ? ctrl.close()
-        : ctrl.error(new Error("The crc32 checksum don't match"));
+          ? ctrl.close()
+          : ctrl.error(new Error("The crc32 checksum don't match"));
+    }
 
     return new ReadableStream({
       async start(ctrl) {
         // Need to read local header to get fileName + extraField length
         // Since they are not always the same length as in central dir...
+        const zip64Field = self._extraFields[1];
+        const compressedSize = zip64Field.getUint16(8, true);
+        const zip64Offset = zip64Field.getUint16(16, true);
+
         const ab = await self._fileLike
-          .slice(self.offset + 26, self.offset + 30)
+          .slice(
+              JSBI.toNumber(self.offset + BigInt(26)),
+              JSBI.toNumber(self.offset + BigInt(30))
+          )
           .arrayBuffer();
 
         const bytes = new Uint8Array(ab);
         const localFileOffset = uint16e(bytes, 0) + uint16e(bytes, 2) + 30;
-        const start = self.offset + localFileOffset;
-        const end = start + self.compressedSize;
-        this.reader = self._fileLike.slice(start, end).stream().getReader();
+        const start = self.offset + BigInt(localFileOffset);
+        const end = start + BigInt(self.compressedSize);
+        this.reader = await self._fileLike.slice(JSBI.toNumber(start), JSBI.toNumber(end)).stream().getReader();
 
         if (self.compressionMethod) {
           inflator = new Inflate({ raw: true });
@@ -303,7 +317,6 @@ async function* Reader(file) {
   if (isZip64) {
     const l = -dv.byteLength - 20;
     dv = new DataView(await file.slice(l, -dv.byteLength).arrayBuffer());
-
     // const signature = dv.getUint32(0, true) // 4 bytes
     // const diskWithZip64CentralDirStart = dv.getUint32(4, true) // 4 bytes
     const relativeOffsetEndOfZip64CentralDir = JSBI.toNumber(
