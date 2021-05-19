@@ -260,7 +260,7 @@ var Entry = /*#__PURE__*/function () {
                 switch (_context4.prev = _context4.next) {
                   case 0:
                     _context4.next = 2;
-                    return _sliceInstanceProperty(_context2 = self._fileLike).call(_context2, JSBI.toNumber(self.offset + BigInt(26)), JSBI.toNumber(self.offset + BigInt(30))).arrayBuffer();
+                    return _sliceInstanceProperty(_context2 = self._fileLike).call(_context2, JSBI.toNumber(BigInt(self.offset) + BigInt(26)), JSBI.toNumber(BigInt(self.offset) + BigInt(30))).arrayBuffer();
 
                   case 2:
                     ab = _context4.sent;

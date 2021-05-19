@@ -178,8 +178,8 @@ class Entry {
 
         const ab = await self._fileLike
           .slice(
-              JSBI.toNumber(self.offset + BigInt(26)),
-              JSBI.toNumber(self.offset + BigInt(30))
+              JSBI.toNumber(BigInt(self.offset) + BigInt(26)),
+              JSBI.toNumber(BigInt(self.offset) + BigInt(30))
           )
           .arrayBuffer();
 
