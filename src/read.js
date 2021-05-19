@@ -175,9 +175,6 @@ class Entry {
       async start(ctrl) {
         // Need to read local header to get fileName + extraField length
         // Since they are not always the same length as in central dir...
-        const zip64Field = self._extraFields[1];
-        const compressedSize = zip64Field.getUint16(8, true);
-        const zip64Offset = zip64Field.getUint16(16, true);
 
         const ab = await self._fileLike
           .slice(

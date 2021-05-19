@@ -244,7 +244,6 @@ var Entry = /*#__PURE__*/function () {
       var inflator;
 
       var onEnd = function onEnd(ctrl) {
-        console.log(crc.get(), self.crc32);
         crc.get() === self.crc32 ? ctrl.close() : ctrl.error(new Error("The crc32 checksum don't match"));
       };
 
@@ -255,29 +254,24 @@ var Entry = /*#__PURE__*/function () {
           return _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee() {
             var _context2, _context3;
 
-            var zip64Field, compressedSize, zip64Offset, ab, bytes, localFileOffset, start, end;
+            var ab, bytes, localFileOffset, start, end;
             return _regeneratorRuntime.wrap(function _callee$(_context4) {
               while (1) {
                 switch (_context4.prev = _context4.next) {
                   case 0:
-                    // Need to read local header to get fileName + extraField length
-                    // Since they are not always the same length as in central dir...
-                    zip64Field = self._extraFields[1];
-                    compressedSize = zip64Field.getUint16(8, true);
-                    zip64Offset = zip64Field.getUint16(16, true);
-                    _context4.next = 5;
+                    _context4.next = 2;
                     return _sliceInstanceProperty(_context2 = self._fileLike).call(_context2, JSBI.toNumber(self.offset + BigInt(26)), JSBI.toNumber(self.offset + BigInt(30))).arrayBuffer();
 
-                  case 5:
+                  case 2:
                     ab = _context4.sent;
                     bytes = new Uint8Array(ab);
                     localFileOffset = uint16e(bytes, 0) + uint16e(bytes, 2) + 30;
                     start = self.offset + BigInt(localFileOffset);
                     end = start + BigInt(self.compressedSize);
-                    _context4.next = 12;
+                    _context4.next = 9;
                     return _sliceInstanceProperty(_context3 = self._fileLike).call(_context3, JSBI.toNumber(start), JSBI.toNumber(end)).stream().getReader();
 
-                  case 12:
+                  case 9:
                     _this.reader = _context4.sent;
 
                     if (self.compressionMethod) {
@@ -295,7 +289,7 @@ var Entry = /*#__PURE__*/function () {
                       };
                     }
 
-                  case 14:
+                  case 11:
                   case "end":
                     return _context4.stop();
                 }
@@ -317,24 +311,7 @@ var Entry = /*#__PURE__*/function () {
 
                   case 2:
                     v = _context5.sent;
-
-                    if (inflator) {
-                      if (!v.done) {
-                        inflator.push(v.value);
-                      }
-                    } else {
-                      if (v.done) {
-                        onEnd(ctrl);
-                      } else {
-                        crc.append(v.value);
-                        ctrl.enqueue(v.value);
-                      }
-                    } // inflator
-                    //   ? !v.done && inflator.push(v.value)
-                    //   : v.done
-                    //   ? onEnd(ctrl)
-                    //   : (ctrl.enqueue(v.value), crc.append(v.value));
-
+                    inflator ? !v.done && inflator.push(v.value) : v.done ? onEnd(ctrl) : (ctrl.enqueue(v.value), crc.append(v.value));
 
                   case 4:
                   case "end":
