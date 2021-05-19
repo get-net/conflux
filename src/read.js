@@ -186,7 +186,7 @@ class Entry {
         const bytes = new Uint8Array(ab);
         const localFileOffset = uint16e(bytes, 0) + uint16e(bytes, 2) + 30;
         const start = BigInt(self.offset) + BigInt(localFileOffset);
-        const end = start + BigInt(self.compressedSize);
+        const end = BigInt(start) + BigInt(self.compressedSize);
         this.reader = await self._fileLike.slice(JSBI.toNumber(start), JSBI.toNumber(end)).stream().getReader();
 
         if (self.compressionMethod) {

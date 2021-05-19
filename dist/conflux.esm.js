@@ -267,7 +267,7 @@ var Entry = /*#__PURE__*/function () {
                     bytes = new Uint8Array(ab);
                     localFileOffset = uint16e(bytes, 0) + uint16e(bytes, 2) + 30;
                     start = BigInt(self.offset) + BigInt(localFileOffset);
-                    end = start + BigInt(self.compressedSize);
+                    end = BigInt(start) + BigInt(self.compressedSize);
                     _context4.next = 9;
                     return _sliceInstanceProperty(_context3 = self._fileLike).call(_context3, JSBI.toNumber(start), JSBI.toNumber(end)).stream().getReader();
 
