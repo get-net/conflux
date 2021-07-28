@@ -1,22 +1,22 @@
-import _regeneratorRuntime from '@babel/runtime-corejs3/regenerator';
 import _asyncToGenerator from '@babel/runtime-corejs3/helpers/asyncToGenerator';
-import _sliceInstanceProperty from '@babel/runtime-corejs3/core-js/instance/slice';
 import _classCallCheck from '@babel/runtime-corejs3/helpers/classCallCheck';
 import _createClass from '@babel/runtime-corejs3/helpers/createClass';
 import _awaitAsyncGenerator from '@babel/runtime-corejs3/helpers/awaitAsyncGenerator';
 import _wrapAsyncGenerator from '@babel/runtime-corejs3/helpers/wrapAsyncGenerator';
+import _regeneratorRuntime from '@babel/runtime-corejs3/regenerator';
+import _sliceInstanceProperty from '@babel/runtime-corejs3/core-js/instance/slice';
 import { Inflate } from 'pako';
 import _globalThis from '@babel/runtime-corejs3/core-js/global-this';
 import JSBI$1 from 'jsbi';
-import _Reflect$construct from '@babel/runtime-corejs3/core-js/reflect/construct';
 import _inherits from '@babel/runtime-corejs3/helpers/inherits';
 import _possibleConstructorReturn from '@babel/runtime-corejs3/helpers/possibleConstructorReturn';
 import _getPrototypeOf from '@babel/runtime-corejs3/helpers/getPrototypeOf';
-import _endsWithInstanceProperty from '@babel/runtime-corejs3/core-js/instance/ends-with';
-import _Date$now from '@babel/runtime-corejs3/core-js/date/now';
-import _trimInstanceProperty from '@babel/runtime-corejs3/core-js/instance/trim';
-import _forEachInstanceProperty from '@babel/runtime-corejs3/core-js/instance/for-each';
 import _Object$create from '@babel/runtime-corejs3/core-js/object/create';
+import _forEachInstanceProperty from '@babel/runtime-corejs3/core-js/instance/for-each';
+import _trimInstanceProperty from '@babel/runtime-corejs3/core-js/instance/trim';
+import _Date$now from '@babel/runtime-corejs3/core-js/date/now';
+import _endsWithInstanceProperty from '@babel/runtime-corejs3/core-js/instance/ends-with';
+import _Reflect$construct from '@babel/runtime-corejs3/core-js/reflect/construct';
 import { TransformStream } from 'web-streams-polyfill/ponyfill';
 
 var jsbi;
@@ -237,120 +237,6 @@ var Entry = /*#__PURE__*/function () {
   }
 
   _createClass(Entry, [{
-    key: "stream",
-    value: function stream() {
-      var self = this;
-      var crc = new Crc32();
-      var inflator;
-
-      var onEnd = function onEnd(ctrl) {
-        crc.get() === self.crc32 ? ctrl.close() : ctrl.error(new Error("The crc32 checksum don't match"));
-      };
-
-      return new ReadableStream({
-        start: function start(ctrl) {
-          var _this = this;
-
-          return _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee() {
-            var _context2, _context3;
-
-            var ab, bytes, localFileOffset, start, end;
-            return _regeneratorRuntime.wrap(function _callee$(_context4) {
-              while (1) {
-                switch (_context4.prev = _context4.next) {
-                  case 0:
-                    _context4.next = 2;
-                    return _sliceInstanceProperty(_context2 = self._fileLike).call(_context2, JSBI.toNumber(BigInt(self.offset) + BigInt(26)), JSBI.toNumber(BigInt(self.offset) + BigInt(30))).arrayBuffer();
-
-                  case 2:
-                    ab = _context4.sent;
-                    bytes = new Uint8Array(ab);
-                    localFileOffset = uint16e(bytes, 0) + uint16e(bytes, 2) + 30;
-                    start = BigInt(self.offset) + BigInt(localFileOffset);
-                    end = BigInt(start) + BigInt(self.compressedSize);
-                    _context4.next = 9;
-                    return _sliceInstanceProperty(_context3 = self._fileLike).call(_context3, JSBI.toNumber(start), JSBI.toNumber(end)).stream().getReader();
-
-                  case 9:
-                    _this.reader = _context4.sent;
-
-                    if (self.compressionMethod) {
-                      inflator = new Inflate({
-                        raw: true
-                      });
-
-                      inflator.onData = function (chunk) {
-                        crc.append(chunk);
-                        ctrl.enqueue(chunk);
-                      };
-
-                      inflator.onEnd = function () {
-                        return onEnd(ctrl);
-                      };
-                    }
-
-                  case 11:
-                  case "end":
-                    return _context4.stop();
-                }
-              }
-            }, _callee);
-          }))();
-        },
-        pull: function pull(ctrl) {
-          var _this2 = this;
-
-          return _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee2() {
-            var v;
-            return _regeneratorRuntime.wrap(function _callee2$(_context5) {
-              while (1) {
-                switch (_context5.prev = _context5.next) {
-                  case 0:
-                    _context5.next = 2;
-                    return _this2.reader.read();
-
-                  case 2:
-                    v = _context5.sent;
-                    inflator ? !v.done && inflator.push(v.value) : v.done ? onEnd(ctrl) : (ctrl.enqueue(v.value), crc.append(v.value));
-
-                  case 4:
-                  case "end":
-                    return _context5.stop();
-                }
-              }
-            }, _callee2);
-          }))();
-        }
-      });
-    }
-  }, {
-    key: "arrayBuffer",
-    value: function arrayBuffer() {
-      return new Response(this.stream()).arrayBuffer().catch(function (e) {
-        throw new Error("Failed to read Entry\n".concat(e));
-      });
-    }
-  }, {
-    key: "text",
-    value: function text() {
-      return new Response(this.stream()).text().catch(function (e) {
-        throw new Error("Failed to read Entry\n".concat(e));
-      });
-    }
-  }, {
-    key: "file",
-    value: function file() {
-      var _this3 = this;
-
-      return new Response(this.stream()).blob().then(function (blob) {
-        return new File([blob], _this3.name, {
-          lastModified: _this3.lastModified
-        });
-      }).catch(function (e) {
-        throw new Error("Failed to read Entry\n".concat(e));
-      });
-    }
-  }, {
     key: "versionMadeBy",
     get: function get() {
       return this.dataView.getUint16(4, true);
@@ -467,9 +353,9 @@ var Entry = /*#__PURE__*/function () {
     key: "name",
     get: function get() {
       if (!this.bitFlag && this._extraFields && this._extraFields[0x7075]) {
-        var _context6;
+        var _context2;
 
-        return decoder.decode(_sliceInstanceProperty(_context6 = this._extraFields[0x7075].buffer).call(_context6, 5));
+        return decoder.decode(_sliceInstanceProperty(_context2 = this._extraFields[0x7075].buffer).call(_context2, 5));
       }
 
       var dv = this.dataView;
@@ -481,6 +367,120 @@ var Entry = /*#__PURE__*/function () {
     get: function get() {
       var size = this.dataView.getUint32(24, true);
       return size === MAX_VALUE_32BITS ? this._extraFields[1].getUint8(0) : size;
+    }
+  }, {
+    key: "stream",
+    value: function stream() {
+      var self = this;
+      var crc = new Crc32();
+      var inflator;
+
+      var onEnd = function onEnd(ctrl) {
+        crc.get() === self.crc32 ? ctrl.close() : ctrl.error(new Error("The crc32 checksum don't match"));
+      };
+
+      return new ReadableStream({
+        start: function start(ctrl) {
+          var _this = this;
+
+          return _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee() {
+            var _context3, _context4;
+
+            var ab, bytes, localFileOffset, start, end;
+            return _regeneratorRuntime.wrap(function _callee$(_context5) {
+              while (1) {
+                switch (_context5.prev = _context5.next) {
+                  case 0:
+                    _context5.next = 2;
+                    return _sliceInstanceProperty(_context3 = self._fileLike).call(_context3, JSBI.toNumber(BigInt(self.offset) + BigInt(26)), JSBI.toNumber(BigInt(self.offset) + BigInt(30))).arrayBuffer();
+
+                  case 2:
+                    ab = _context5.sent;
+                    bytes = new Uint8Array(ab);
+                    localFileOffset = uint16e(bytes, 0) + uint16e(bytes, 2) + 30;
+                    start = BigInt(self.offset) + BigInt(localFileOffset);
+                    end = BigInt(start) + BigInt(self.compressedSize);
+                    _context5.next = 9;
+                    return _sliceInstanceProperty(_context4 = self._fileLike).call(_context4, JSBI.toNumber(start), JSBI.toNumber(end)).stream().getReader();
+
+                  case 9:
+                    _this.reader = _context5.sent;
+
+                    if (self.compressionMethod) {
+                      inflator = new Inflate({
+                        raw: true
+                      });
+
+                      inflator.onData = function (chunk) {
+                        crc.append(chunk);
+                        ctrl.enqueue(chunk);
+                      };
+
+                      inflator.onEnd = function () {
+                        return onEnd(ctrl);
+                      };
+                    }
+
+                  case 11:
+                  case "end":
+                    return _context5.stop();
+                }
+              }
+            }, _callee);
+          }))();
+        },
+        pull: function pull(ctrl) {
+          var _this2 = this;
+
+          return _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee2() {
+            var v;
+            return _regeneratorRuntime.wrap(function _callee2$(_context6) {
+              while (1) {
+                switch (_context6.prev = _context6.next) {
+                  case 0:
+                    _context6.next = 2;
+                    return _this2.reader.read();
+
+                  case 2:
+                    v = _context6.sent;
+                    inflator ? !v.done && inflator.push(v.value) : v.done ? onEnd(ctrl) : (ctrl.enqueue(v.value), crc.append(v.value));
+
+                  case 4:
+                  case "end":
+                    return _context6.stop();
+                }
+              }
+            }, _callee2);
+          }))();
+        }
+      });
+    }
+  }, {
+    key: "arrayBuffer",
+    value: function arrayBuffer() {
+      return new Response(this.stream()).arrayBuffer().catch(function (e) {
+        throw new Error("Failed to read Entry\n".concat(e));
+      });
+    }
+  }, {
+    key: "text",
+    value: function text() {
+      return new Response(this.stream()).text().catch(function (e) {
+        throw new Error("Failed to read Entry\n".concat(e));
+      });
+    }
+  }, {
+    key: "file",
+    value: function file() {
+      var _this3 = this;
+
+      return new Response(this.stream()).blob().then(function (blob) {
+        return new File([blob], _this3.name, {
+          lastModified: _this3.lastModified
+        });
+      }).catch(function (e) {
+        throw new Error("Failed to read Entry\n".concat(e));
+      });
     }
   }]);
 
@@ -726,7 +726,7 @@ var _globalThis$WebStream;
 
 function _createSuper(Derived) { var hasNativeReflectConstruct = _isNativeReflectConstruct(); return function _createSuperInternal() { var Super = _getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = _getPrototypeOf(this).constructor; result = _Reflect$construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return _possibleConstructorReturn(this, result); }; }
 
-function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !_Reflect$construct) return false; if (_Reflect$construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(_Reflect$construct(Date, [], function () {})); return true; } catch (e) { return false; } }
+function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !_Reflect$construct) return false; if (_Reflect$construct.sham) return false; if (typeof Proxy === "function") return true; try { Boolean.prototype.valueOf.call(_Reflect$construct(Boolean, [], function () {})); return true; } catch (e) { return false; } }
 var zip64ExtraFieldLength = 28;
 var centralHeaderSignature = 0x504b0102,
     CDLength = 46;
