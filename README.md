@@ -1,9 +1,9 @@
 <p align="center">
   <img alt="Conflux by Transcend" src="https://user-images.githubusercontent.com/7354176/61584253-73ecfb00-aaf9-11e9-91a5-a62e5ba6efc6.png"/>
 </p>
-<h1 align="center">Conflux</h1>
+<h1 align="center">Conflux64</h1>
 <p align="center">
-  <strong>Build and read zip files with whatwg streams in the browser.</strong>
+  <strong>Fork of conflux which unfortunately lacked support for zip64. Build and read zip files with whatwg streams in the browser. Now in zip64 format.</strong>
   <br /><br />
   <span>/ˈkänˌfləks/</span>
   (<i>noun</i>)<span> a flowing together of two or more streams</span><br /><br />
@@ -32,6 +32,14 @@
 | Edge    |       ✅ |
 | Firefox |       ✅ |
 
+## Issues
+
+Some archivers, i.e. File-roller and Ark on Linux have problems reading archives
+created in conflux64. Yet, the majority of tested archivers have no problems
+reading the archives and report no issues. Since use case scenarios for this
+fork were pretty limited as well as time. Therefore, I left these issues unaddressed
+at the moment.
+
 ## Examples
 
 - [Writing zips](https://codesandbox.io/s/transcend-ioconflux-writing-x8vq4?file=/src/index.js)
@@ -45,14 +53,14 @@
 
 ```sh
 # With Yarn
-yarn add @transcend-io/conflux
+yarn add conflux64
 
 # With NPM
-npm install --save @transcend-io/conflux
+npm install --save conflux64
 ```
 
 ```js
-import { Reader, Writer } from '@transcend-io/conflux';
+import { Reader, Writer } from 'conflux64';
 ```
 
 #### CDN
@@ -68,7 +76,7 @@ const { Reader, Writer } = window.conflux;
 ### Writing a ZIP
 
 ```js
-import { Writer } from '@transcend-io/conflux';
+import { Writer } from 'conflux64';
 
 import streamSaver from "streamsaver";
 
@@ -94,7 +102,7 @@ writer.close();
 ### Incorporating other streams
 
 ```js
-import { Writer } from '@transcend-io/conflux';
+import { Writer } from 'conflux64';
 
 const { readable, writable } = new Writer();
 const writer = writable.getWriter();
@@ -126,7 +134,7 @@ const reader = readable.getReader();
 ### Reading ZIP files
 
 ```js
-import { Reader } from '@transcend-io/conflux';
+import { Reader } from 'conflux64';
 
 fetch("https://cdn.jsdelivr.net/gh/Stuk/jszip/test/ref/deflate.zip").then(
   async res => {
