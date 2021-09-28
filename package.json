@@ -96,9 +96,9 @@
     "tape": "^5.3.0"
   },
   "dependencies": {
-    "@babel/runtime-corejs3": "^7.14.8",
-    "jsbi": "^3.1.5",
-    "pako": "^1.0.11",
-    "web-streams-polyfill": "^3.1.0"
+    "@babel/runtime-corejs3": "7.14.8",
+    "jsbi": "3.1.5",
+    "pako": "1.0.11",
+    "web-streams-polyfill": "3.1.1"
   }
 }

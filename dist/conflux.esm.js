@@ -767,6 +767,7 @@ var CD = {
   filenameLength: 28,
   extraDataLength: 30,
   commentLength: 32,
+  externalFileAttributes: 38,
   lfhOffset: 42,
   filename: 46
 };
@@ -804,7 +805,7 @@ var ZipTransformer = /*#__PURE__*/function () {
       var _context,
           _this = this;
 
-      var data = new Uint8Array(length + 22 + zip64ExtraFieldLength * this.filenames.length);
+      var data = new Uint8Array(length + zip64ExtraFieldLength * this.filenames.length);
       var dv = new DataView(data.buffer);
       var file;
 
@@ -813,7 +814,7 @@ var ZipTransformer = /*#__PURE__*/function () {
         dv.setUint32(index + CD.signature, centralHeaderSignature);
         dv.setUint16(index + CD.versionCreated, 0x2d00);
         dv.setUint16(index + CD.commentLength, file.comment.length, true);
-        dv.setUint8(index + 38, file.directory ? 16 : 0);
+        dv.setUint8(index + CD.externalFileAttributes, file.directory ? 16 : 0);
         dv.setUint32(index + CD.lfhOffset, 0xffffffff, true);
         data.set(file.header, index + 6);
         data.set(file.nameBuf, index + CDLength);
@@ -822,8 +823,8 @@ var ZipTransformer = /*#__PURE__*/function () {
         var zip64Field = _this.getZip64ExtraField(file.uncompressedLength, file.compressedLength, file.offset);
 
         data.set(zip64Field, index + CDLength + file.nameBuf.length);
-        data.set(file.comment, index + CDLength + file.nameBuf.length + zip64Field.length);
-        index += 46 + file.nameBuf.length + file.comment.length + zip64Field.length;
+        data.set(file.comment, index + CDLength + file.nameBuf.length + zip64Field.length - eocdMinLength);
+        index += CDLength + file.nameBuf.length + file.comment.length + zip64Field.length - eocdMinLength;
       });
 
       ctrl.enqueue(data);
